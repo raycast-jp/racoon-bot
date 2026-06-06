@@ -2,7 +2,10 @@ export const config = {
   slackBotToken: requireEnv("SLACK_BOT_TOKEN"),
   slackSigningSecret: requireEnv("SLACK_SIGNING_SECRET"),
   anthropicApiKey: requireEnv("ANTHROPIC_API_KEY"),
-  dbPath: process.env.DB_PATH ?? "./data/slack-log.db",
+  /** Turso の接続 URL。未設定ならローカルの SQLite ファイルで動く */
+  tursoDatabaseUrl: process.env.TURSO_DATABASE_URL ?? "file:./data/local.db",
+  /** Turso の認証トークン（ローカルの file: 利用時は不要） */
+  tursoAuthToken: process.env.TURSO_AUTH_TOKEN,
   port: Number(process.env.PORT ?? 3000),
   /** 回答生成に使うモデル */
   answerModel: process.env.ANSWER_MODEL ?? "claude-opus-4-8",

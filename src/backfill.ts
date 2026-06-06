@@ -1,8 +1,9 @@
 /**
  * 過去ログの一括取り込みスクリプト。
- * bot が参加しているチャンネルの履歴（スレッド返信を含む）を SQLite に保存する。
+ * bot が参加しているチャンネルの履歴（スレッド返信を含む）を DB に保存する。
  *
  * 使い方: npm run backfill
+ * 本番の Turso に取り込む場合は TURSO_DATABASE_URL / TURSO_AUTH_TOKEN を指定して実行する。
  */
 import { WebClient } from "@slack/web-api";
 import { config } from "./config";
@@ -25,7 +26,7 @@ async function backfillChannel(channelId: string, channelName: string): Promise<
 
     for (const m of res.messages ?? []) {
       if (!m.ts || m.bot_id || m.subtype) continue;
-      saveMessage({
+      await saveMessage({
         channelId,
         ts: m.ts,
         threadTs: m.thread_ts,
@@ -46,7 +47,7 @@ async function backfillChannel(channelId: string, channelName: string): Promise<
           });
           for (const r of replies.messages ?? []) {
             if (!r.ts || r.ts === m.ts || r.bot_id || (r as { subtype?: string }).subtype) continue;
-            saveMessage({
+            await saveMessage({
               channelId,
               ts: r.ts,
               threadTs: r.thread_ts,
@@ -84,7 +85,7 @@ async function backfillChannel(channelId: string, channelName: string): Promise<
     for (const ch of res.channels ?? []) {
       if (!ch.id || !ch.is_member) continue;
       const name = ch.name ?? ch.id;
-      cacheChannelName(ch.id, name);
+      await cacheChannelName(ch.id, name);
       console.log(`#${name} を取り込み中...`);
       const saved = await backfillChannel(ch.id, name);
       console.log(`#${name}: 完了 (${saved} 件)`);
@@ -93,5 +94,5 @@ async function backfillChannel(channelId: string, channelName: string): Promise<
     cursor = res.response_metadata?.next_cursor || undefined;
   } while (cursor);
 
-  console.log(`バックフィル完了。合計 ${messageCount()} 件のメッセージを記憶しています。`);
+  console.log(`バックフィル完了。合計 ${await messageCount()} 件のメッセージを記憶しています。`);
 })();

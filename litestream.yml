@@ -1,6 +1,0 @@
-# Litestream 設定: SQLite を GCS に常時レプリケート
-# REPLICA_URL 例: gcs://your-bucket/racoon-bot
-dbs:
-  - path: ${DB_PATH}
-    replicas:
-      - url: ${REPLICA_URL}

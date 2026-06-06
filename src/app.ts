@@ -1,146 +1,61 @@
-import { App } from "@slack/bolt";
-import type { WebClient } from "@slack/web-api";
+/**
+ * ローカル開発用の HTTP サーバー。
+ * 本番 (Vercel) では api/slack/events.ts が同じ処理を担う。
+ *
+ * 使い方: npm run dev → ngrok http 3000 で公開し、
+ * Slack App の Request URL に https://xxx.ngrok.io/slack/events を設定する。
+ */
+import http from "node:http";
 import { config } from "./config";
-import {
-  saveMessage,
-  updateMessageText,
-  deleteMessage,
-  searchMessages,
-  recentMessages,
-  messageCount,
-  cacheChannelName,
-  getCachedChannelName,
-  cacheUserName,
-  getCachedUserName,
-  type StoredMessage,
-} from "./db";
-import { extractKeywords, answerQuestion } from "./llm";
+import { verifySlackRequest } from "./verify";
+import { handleEvent } from "./events";
+import { messageCount } from "./db";
 
-const app = new App({
-  token: config.slackBotToken,
-  signingSecret: config.slackSigningSecret,
-});
-
-// --- ログの蓄積 ---
-
-app.event("message", async ({ event }) => {
-  const e = event as Record<string, any>;
-
-  if (e.subtype === undefined) {
-    if (e.bot_id) return; // bot の発言は記録しない
-    saveMessage({
-      channelId: e.channel,
-      ts: e.ts,
-      threadTs: e.thread_ts,
-      userId: e.user,
-      text: e.text ?? "",
-    });
-  } else if (e.subtype === "message_changed" && e.message?.ts) {
-    updateMessageText(e.channel, e.message.ts, e.message.text ?? "");
-  } else if (e.subtype === "message_deleted" && e.deleted_ts) {
-    deleteMessage(e.channel, e.deleted_ts);
-  } else if (e.subtype === "thread_broadcast") {
-    saveMessage({
-      channelId: e.channel,
-      ts: e.ts,
-      threadTs: e.thread_ts,
-      userId: e.user,
-      text: e.text ?? "",
-    });
-  }
-});
-
-// --- @メンションで質問に回答 ---
-
-app.event("app_mention", async ({ event, client, say }) => {
-  const question = event.text.replace(/<@[^>]+>/g, "").trim();
-  const threadTs = event.thread_ts ?? event.ts;
-
-  if (!question) {
-    await say({
-      text: `質問をどうぞ！現在 ${messageCount()} 件のメッセージを記憶しています。`,
-      thread_ts: threadTs,
-    });
+const server = http.createServer((req, res) => {
+  if (req.method !== "POST" || !["/slack/events", "/api/slack/events"].includes(req.url ?? "")) {
+    res.writeHead(404).end();
     return;
   }
 
-  try {
-    // 1. 質問から検索キーワードを抽出
-    const keywords = await extractKeywords(question);
+  let body = "";
+  req.on("data", (chunk) => (body += chunk));
+  req.on("end", () => {
+    const ok = verifySlackRequest(
+      config.slackSigningSecret,
+      body,
+      req.headers["x-slack-request-timestamp"] as string | undefined,
+      req.headers["x-slack-signature"] as string | undefined
+    );
+    if (!ok) {
+      res.writeHead(401).end("invalid signature");
+      return;
+    }
 
-    // 2. 全文検索 + 質問チャンネルの直近ログを収集
-    const hits = keywords.length > 0 ? searchMessages(keywords, config.searchLimit) : [];
-    const recent = recentMessages(event.channel, config.recentLimit);
+    const payload = JSON.parse(body) as Record<string, any>;
 
-    const searchContext = await formatMessages(client, hits);
-    const recentContext = await formatMessages(client, recent);
+    // Slack App 設定時の URL 検証
+    if (payload.type === "url_verification") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ challenge: payload.challenge }));
+      return;
+    }
 
-    // 3. Claude に回答させる
-    const answer = await answerQuestion(question, searchContext, recentContext);
+    // 処理が 3 秒を超えた場合の再送イベントは無視する（重複回答の防止）
+    if (req.headers["x-slack-retry-num"]) {
+      res.writeHead(200, { "x-slack-no-retry": "1" }).end("ok");
+      return;
+    }
 
-    await say({
-      text: answer || "回答を生成できませんでした。",
-      thread_ts: threadTs,
-    });
-  } catch (error) {
-    console.error("回答生成に失敗:", error);
-    await say({
-      text: "エラーが発生しました。しばらくしてからもう一度お試しください。",
-      thread_ts: threadTs,
-    });
-  }
+    // Slack は 3 秒以内の ACK を要求するため、先に 200 を返してから処理する
+    res.writeHead(200).end("ok");
+    if (payload.type === "event_callback") {
+      handleEvent(payload.event).catch((err) => console.error("イベント処理に失敗:", err));
+    }
+  });
 });
 
-// --- 表示用フォーマット ---
-
-async function formatMessages(client: WebClient, messages: StoredMessage[]): Promise<string> {
-  const lines: string[] = [];
-  for (const m of messages) {
-    const channel = await resolveChannelName(client, m.channel_id);
-    const user = m.user_id ? await resolveUserName(client, m.user_id) : "unknown";
-    const date = new Date(m.created_at * 1000).toLocaleString("ja-JP", {
-      timeZone: "Asia/Tokyo",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    lines.push(`[${date}] #${channel} ${user}: ${m.text}`);
-  }
-  return lines.join("\n");
-}
-
-async function resolveChannelName(client: WebClient, channelId: string): Promise<string> {
-  const cached = getCachedChannelName(channelId);
-  if (cached) return cached;
-  try {
-    const res = await client.conversations.info({ channel: channelId });
-    const name = res.channel?.name ?? channelId;
-    cacheChannelName(channelId, name);
-    return name;
-  } catch {
-    return channelId;
-  }
-}
-
-async function resolveUserName(client: WebClient, userId: string): Promise<string> {
-  const cached = getCachedUserName(userId);
-  if (cached) return cached;
-  try {
-    const res = await client.users.info({ user: userId });
-    const name =
-      res.user?.profile?.display_name || res.user?.real_name || res.user?.name || userId;
-    cacheUserName(userId, name);
-    return name;
-  } catch {
-    return userId;
-  }
-}
-
-// --- 起動 ---
-
-(async () => {
-  await app.start(config.port);
-  console.log(`⚡️ racoon-bot がポート ${config.port} で起動しました（記憶: ${messageCount()} 件）`);
-})();
+server.listen(config.port, async () => {
+  console.log(
+    `⚡️ racoon-bot がポート ${config.port} で起動しました（記憶: ${await messageCount()} 件）`
+  );
+});
