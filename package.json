@@ -8,6 +8,7 @@
     "build": "tsc",
     "dev": "tsx watch src/app.ts",
     "start": "node dist/src/app.js",
+    "test": "vitest run",
     "backfill": "tsx src/backfill.ts"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.8"
   }
 }
