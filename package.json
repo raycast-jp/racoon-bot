@@ -12,6 +12,7 @@
     "dev": "tsx watch --env-file=.env src/app.ts",
     "start": "node dist/src/app.js",
     "test": "vitest run",
+    "studio": "drizzle-kit studio",
     "backfill": "tsx --env-file=.env src/backfill.ts"
   },
   "dependencies": {
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^4.1.8"

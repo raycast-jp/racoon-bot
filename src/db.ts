@@ -1,6 +1,7 @@
 import { createClient } from "@libsql/client";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/libsql";
+import { migrate } from "drizzle-orm/libsql/migrator";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "./config";
@@ -21,57 +22,14 @@ const client = createClient({
 
 const db = drizzle(client);
 
-// FTS5 仮想テーブルと trigger は Drizzle のスキーマ API では表現できないため raw SQL で管理する。
-// trigram tokenizer は日本語の部分一致検索に対応 (SQLite 3.34+)
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS messages (
-  channel_id TEXT NOT NULL,
-  ts         TEXT NOT NULL,
-  thread_ts  TEXT,
-  user_id    TEXT,
-  text       TEXT NOT NULL,
-  created_at INTEGER NOT NULL,
-  PRIMARY KEY (channel_id, ts)
-);
-
-CREATE INDEX IF NOT EXISTS idx_messages_channel_created
-  ON messages (channel_id, created_at DESC);
-
-CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
-  text,
-  content='messages',
-  content_rowid='rowid',
-  tokenize='trigram'
-);
-
-CREATE TRIGGER IF NOT EXISTS messages_ai AFTER INSERT ON messages BEGIN
-  INSERT INTO messages_fts(rowid, text) VALUES (new.rowid, new.text);
-END;
-
-CREATE TRIGGER IF NOT EXISTS messages_ad AFTER DELETE ON messages BEGIN
-  INSERT INTO messages_fts(messages_fts, rowid, text) VALUES ('delete', old.rowid, old.text);
-END;
-
-CREATE TRIGGER IF NOT EXISTS messages_au AFTER UPDATE OF text ON messages BEGIN
-  INSERT INTO messages_fts(messages_fts, rowid, text) VALUES ('delete', old.rowid, old.text);
-  INSERT INTO messages_fts(rowid, text) VALUES (new.rowid, new.text);
-END;
-
-CREATE TABLE IF NOT EXISTS channels (
-  id   TEXT PRIMARY KEY,
-  name TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS users (
-  id   TEXT PRIMARY KEY,
-  name TEXT NOT NULL
-);
-`;
-
+// スキーマは drizzle/ のマイグレーション（drizzle-kit generate で生成）で管理する。
+// 初回アクセス時に一度だけ適用する
 let schemaReady: Promise<void> | null = null;
 
 function ensureSchema(): Promise<void> {
-  schemaReady ??= client.executeMultiple(SCHEMA);
+  schemaReady ??= migrate(db, {
+    migrationsFolder: path.join(process.cwd(), "drizzle"),
+  });
   return schemaReady;
 }
 
