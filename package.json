@@ -9,10 +9,10 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsx watch src/app.ts",
+    "dev": "tsx watch --env-file=.env src/app.ts",
     "start": "node dist/src/app.js",
     "test": "vitest run",
-    "backfill": "tsx src/backfill.ts"
+    "backfill": "tsx --env-file=.env src/backfill.ts"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.125",
