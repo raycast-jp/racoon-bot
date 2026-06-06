@@ -92,9 +92,9 @@ async function handleAppMention(e: Record<string, any>): Promise<void> {
 async function formatMessages(messages: StoredMessage[]): Promise<string> {
   const lines: string[] = [];
   for (const m of messages) {
-    const channel = await resolveChannelName(m.channel_id);
-    const user = m.user_id ? await resolveUserName(m.user_id) : "unknown";
-    const date = new Date(m.created_at * 1000).toLocaleString("ja-JP", {
+    const channel = await resolveChannelName(m.channelId);
+    const user = m.userId ? await resolveUserName(m.userId) : "unknown";
+    const date = new Date(m.createdAt * 1000).toLocaleString("ja-JP", {
       timeZone: "Asia/Tokyo",
       year: "numeric",
       month: "2-digit",

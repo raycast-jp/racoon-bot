@@ -14,7 +14,8 @@
     "@anthropic-ai/sdk": "^0.102.0",
     "@libsql/client": "^0.15.0",
     "@slack/web-api": "^7.9.0",
-    "@vercel/functions": "^2.0.0"
+    "@vercel/functions": "^2.0.0",
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

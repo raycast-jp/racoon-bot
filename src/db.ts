@@ -1,7 +1,12 @@
-import { createClient, type Row } from "@libsql/client";
+import { createClient } from "@libsql/client";
+import { and, count, desc, eq, sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/libsql";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "./config";
+import { channels, messages, users, type StoredMessage } from "./schema";
+
+export type { StoredMessage } from "./schema";
 
 // ローカル開発時 (file:) は保存先ディレクトリを作っておく
 if (config.tursoDatabaseUrl.startsWith("file:")) {
@@ -9,11 +14,14 @@ if (config.tursoDatabaseUrl.startsWith("file:")) {
   fs.mkdirSync(path.dirname(path.resolve(filePath)), { recursive: true });
 }
 
-const db = createClient({
+const client = createClient({
   url: config.tursoDatabaseUrl,
   authToken: config.tursoAuthToken,
 });
 
+const db = drizzle(client);
+
+// FTS5 仮想テーブルと trigger は Drizzle のスキーマ API では表現できないため raw SQL で管理する。
 // trigram tokenizer は日本語の部分一致検索に対応 (SQLite 3.34+)
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS messages (
@@ -63,28 +71,8 @@ CREATE TABLE IF NOT EXISTS users (
 let schemaReady: Promise<void> | null = null;
 
 function ensureSchema(): Promise<void> {
-  schemaReady ??= db.executeMultiple(SCHEMA);
+  schemaReady ??= client.executeMultiple(SCHEMA);
   return schemaReady;
-}
-
-export interface StoredMessage {
-  channel_id: string;
-  ts: string;
-  thread_ts: string | null;
-  user_id: string | null;
-  text: string;
-  created_at: number;
-}
-
-function rowToMessage(r: Row): StoredMessage {
-  return {
-    channel_id: r.channel_id as string,
-    ts: r.ts as string,
-    thread_ts: (r.thread_ts as string | null) ?? null,
-    user_id: (r.user_id as string | null) ?? null,
-    text: r.text as string,
-    created_at: Number(r.created_at),
-  };
 }
 
 export async function saveMessage(msg: {
@@ -96,19 +84,20 @@ export async function saveMessage(msg: {
 }): Promise<void> {
   if (!msg.text.trim()) return;
   await ensureSchema();
-  await db.execute({
-    sql: `INSERT INTO messages (channel_id, ts, thread_ts, user_id, text, created_at)
-          VALUES (?, ?, ?, ?, ?, ?)
-          ON CONFLICT (channel_id, ts) DO UPDATE SET text = excluded.text`,
-    args: [
-      msg.channelId,
-      msg.ts,
-      msg.threadTs ?? null,
-      msg.userId ?? null,
-      msg.text,
-      Math.floor(Number(msg.ts)),
-    ],
-  });
+  await db
+    .insert(messages)
+    .values({
+      channelId: msg.channelId,
+      ts: msg.ts,
+      threadTs: msg.threadTs ?? null,
+      userId: msg.userId ?? null,
+      text: msg.text,
+      createdAt: Math.floor(Number(msg.ts)),
+    })
+    .onConflictDoUpdate({
+      target: [messages.channelId, messages.ts],
+      set: { text: sql`excluded.text` },
+    });
 }
 
 export async function updateMessageText(
@@ -117,36 +106,16 @@ export async function updateMessageText(
   text: string
 ): Promise<void> {
   await ensureSchema();
-  await db.execute({
-    sql: "UPDATE messages SET text = ? WHERE channel_id = ? AND ts = ?",
-    args: [text, channelId, ts],
-  });
+  await db
+    .update(messages)
+    .set({ text })
+    .where(and(eq(messages.channelId, channelId), eq(messages.ts, ts)));
 }
 
 export async function deleteMessage(channelId: string, ts: string): Promise<void> {
   await ensureSchema();
-  await db.execute({
-    sql: "DELETE FROM messages WHERE channel_id = ? AND ts = ?",
-    args: [channelId, ts],
-  });
+  await db.delete(messages).where(and(eq(messages.channelId, channelId), eq(messages.ts, ts)));
 }
-
-const FTS_SQL = `
-  SELECT m.channel_id, m.ts, m.thread_ts, m.user_id, m.text, m.created_at
-  FROM messages_fts f
-  JOIN messages m ON m.rowid = f.rowid
-  WHERE messages_fts MATCH ?
-  ORDER BY bm25(messages_fts)
-  LIMIT ?
-`;
-
-const LIKE_SQL = `
-  SELECT channel_id, ts, thread_ts, user_id, text, created_at
-  FROM messages
-  WHERE text LIKE ? ESCAPE '\\'
-  ORDER BY created_at DESC
-  LIMIT ?
-`;
 
 /**
  * キーワード群で全文検索する。
@@ -164,7 +133,7 @@ export async function searchMessages(
 
   const push = (rows: StoredMessage[]) => {
     for (const row of rows) {
-      const key = `${row.channel_id}:${row.ts}`;
+      const key = `${row.channelId}:${row.ts}`;
       if (seen.has(key)) continue;
       seen.add(key);
       results.push(row);
@@ -182,8 +151,17 @@ export async function searchMessages(
       .map((k) => `"${k.replaceAll('"', '""')}"`)
       .join(" OR ");
     try {
-      const rs = await db.execute({ sql: FTS_SQL, args: [query, limit] });
-      push(rs.rows.map(rowToMessage));
+      // FTS5 の MATCH / bm25 は Drizzle で表現できないため raw SQL
+      const rows = (await db.all(sql`
+        SELECT m.channel_id AS channelId, m.ts AS ts, m.thread_ts AS threadTs,
+               m.user_id AS userId, m.text AS text, m.created_at AS createdAt
+        FROM messages_fts f
+        JOIN messages m ON m.rowid = f.rowid
+        WHERE messages_fts MATCH ${query}
+        ORDER BY bm25(messages_fts)
+        LIMIT ${limit}
+      `)) as StoredMessage[];
+      push(rows);
     } catch {
       // FTS クエリ構文エラーは無視して LIKE にフォールバック
     }
@@ -192,8 +170,13 @@ export async function searchMessages(
   for (const kw of [...shortKeywords, ...ftsKeywords]) {
     if (results.length >= limit) break;
     const escaped = kw.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
-    const rs = await db.execute({ sql: LIKE_SQL, args: [`%${escaped}%`, 20] });
-    push(rs.rows.map(rowToMessage));
+    const rows = await db
+      .select()
+      .from(messages)
+      .where(sql`${messages.text} LIKE ${`%${escaped}%`} ESCAPE '\\'`)
+      .orderBy(desc(messages.createdAt))
+      .limit(20);
+    push(rows);
   }
 
   return results.slice(0, limit);
@@ -204,49 +187,47 @@ export async function recentMessages(
   limit: number
 ): Promise<StoredMessage[]> {
   await ensureSchema();
-  const rs = await db.execute({
-    sql: `SELECT channel_id, ts, thread_ts, user_id, text, created_at
-          FROM messages
-          WHERE channel_id = ?
-          ORDER BY created_at DESC
-          LIMIT ?`,
-    args: [channelId, limit],
-  });
-  return rs.rows.map(rowToMessage).reverse(); // 古い順に並べ替え
+  const rows = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.channelId, channelId))
+    .orderBy(desc(messages.createdAt))
+    .limit(limit);
+  return rows.reverse(); // 古い順に並べ替え
 }
 
 export async function messageCount(): Promise<number> {
   await ensureSchema();
-  const rs = await db.execute("SELECT COUNT(*) AS c FROM messages");
-  return Number(rs.rows[0].c);
+  const [row] = await db.select({ c: count() }).from(messages);
+  return row.c;
 }
 
 // --- チャンネル名・ユーザー名のキャッシュ ---
 
 export async function cacheChannelName(id: string, name: string): Promise<void> {
   await ensureSchema();
-  await db.execute({
-    sql: "INSERT INTO channels (id, name) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET name = excluded.name",
-    args: [id, name],
-  });
+  await db
+    .insert(channels)
+    .values({ id, name })
+    .onConflictDoUpdate({ target: channels.id, set: { name: sql`excluded.name` } });
 }
 
 export async function getCachedChannelName(id: string): Promise<string | undefined> {
   await ensureSchema();
-  const rs = await db.execute({ sql: "SELECT name FROM channels WHERE id = ?", args: [id] });
-  return rs.rows[0]?.name as string | undefined;
+  const [row] = await db.select({ name: channels.name }).from(channels).where(eq(channels.id, id));
+  return row?.name;
 }
 
 export async function cacheUserName(id: string, name: string): Promise<void> {
   await ensureSchema();
-  await db.execute({
-    sql: "INSERT INTO users (id, name) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET name = excluded.name",
-    args: [id, name],
-  });
+  await db
+    .insert(users)
+    .values({ id, name })
+    .onConflictDoUpdate({ target: users.id, set: { name: sql`excluded.name` } });
 }
 
 export async function getCachedUserName(id: string): Promise<string | undefined> {
   await ensureSchema();
-  const rs = await db.execute({ sql: "SELECT name FROM users WHERE id = ?", args: [id] });
-  return rs.rows[0]?.name as string | undefined;
+  const [row] = await db.select({ name: users.name }).from(users).where(eq(users.id, id));
+  return row?.name;
 }
