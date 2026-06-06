@@ -1,6 +1,11 @@
-# Runbook: 初期セットアップ
+# Runbook: 本番環境の初期セットアップ
+
+> 🚨 **これは本番環境 (production) 用の手順です。**
+> 本番の Slack App・Turso DB・Vercel プロジェクトを作成します。
+> ローカル開発環境のセットアップは [runbook_local-development.md](runbook_local-development.md) を参照。
 
 racoon-bot をゼロから本番稼働させるまでの手順。所要時間の目安: 30〜60 分。
+通常はプロジェクト立ち上げ時に **1 回だけ** 実行する。
 
 ## 前提
 
@@ -10,10 +15,10 @@ racoon-bot をゼロから本番稼働させるまでの手順。所要時間の
 - Turso アカウント + `turso` CLI
 - `vercel` CLI（`pnpm add -g vercel`）
 
-## 1. Slack App の作成
+## 1. Slack App の作成（本番用）
 
 1. https://api.slack.com/apps → **Create New App** → **From an app manifest**
-2. リポジトリの `slack-app-manifest.yml` の内容を貼り付ける
+2. リポジトリの `slack-app-manifest.yml`（**本番用**。`slack-app-manifest.dev.yml` の方ではない）の内容を貼り付ける
    - `request_url` は後で差し替えるのでこの時点ではそのままで OK（Verify は失敗する）
 3. **Install to Workspace** でインストール
 4. 以下を控える:
