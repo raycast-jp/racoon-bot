@@ -1,13 +1,16 @@
 # ローカル開発用 Slack App のマニフェスト（本番と同一ワークスペースに共存させる）
-# https://api.slack.com/apps → Create New App → From an app manifest に貼り付け
-# request_url は ngrok 起動後の URL に置き換えること（URL が変わるたびに更新が必要）
+# 開発者ごとに 1 App 作る「1 人 1 セット」方式:
+#   1. YOURNAME を自分の名前に置き換える（例: racoon-bot-dev-myano）
+#   2. YOUR-SUBDOMAIN を自分の ngrok 固定ドメインに置き換える（無料枠で 1 つ請求できる）
+#   3. https://api.slack.com/apps → Create New App → From an app manifest に貼り付け
+# 起動: ngrok http 3000 --url=YOUR-SUBDOMAIN.ngrok-free.dev
 display_information:
-  name: racoon-bot-dev
+  name: racoon-bot-dev-YOURNAME
   description: racoon-bot の開発用。本番とは別の App として動く
   background_color: "#8a6d3b"
 features:
   bot_user:
-    display_name: racoon-bot-dev
+    display_name: racoon-bot-dev-YOURNAME
     always_online: false
 oauth_config:
   scopes:
@@ -23,7 +26,7 @@ oauth_config:
       - chat:write
 settings:
   event_subscriptions:
-    request_url: https://YOUR-NGROK-URL.ngrok.io/slack/events
+    request_url: https://YOUR-SUBDOMAIN.ngrok-free.dev/slack/events
     bot_events:
       - app_mention
       - message.channels

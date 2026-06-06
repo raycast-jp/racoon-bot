@@ -40,8 +40,15 @@ pnpm dev
 ローカルでは `TURSO_DATABASE_URL` 未設定のままで OK — DB は `file:./data/local.db` の
 ローカル SQLite ファイルとして動く（FTS5 trigram 検索もそのまま使える）。
 
-公開 URL が必要なので、`ngrok http 3000` などでトンネルを張り、
-Slack App の **Event Subscriptions → Request URL** に `https://xxx.ngrok.io/slack/events` を設定する。
+公開 URL は ngrok（無料の固定ドメイン）で用意し、開発者ごとに
+`slack-app-manifest.dev.yml` から作成した自分専用の dev App
+（`racoon-bot-dev-<name>`）の Request URL に設定する:
+
+```sh
+ngrok http 3000 --url=YOUR-SUBDOMAIN.ngrok-free.dev
+```
+
+詳細は [docs/runbook_local-development.md](docs/runbook_local-development.md) を参照。
 
 ### 3. Vercel にデプロイ
 
