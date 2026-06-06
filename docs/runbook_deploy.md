@@ -31,7 +31,7 @@ vercel ls
 vercel rollback <デプロイ URL>
 ```
 
-- DB スキーマはアプリ起動時に `CREATE TABLE IF NOT EXISTS` で作られる追加のみの構成のため、
+- DB スキーマはアプリ起動時に `drizzle/` のマイグレーション（追加のみの構成）が自動適用されるため、
   コードのロールバックで DB 互換性が壊れることは基本ない
 - スキーマを破壊的に変更した場合のみ、Turso の point-in-time restore を検討する:
   `turso db create racoon-bot-restored --from-db racoon-bot --timestamp <ISO8601>`
