@@ -1,7 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "./config";
 
-const anthropic = new Anthropic({ apiKey: config.anthropicApiKey });
+// Vercel AI Gateway 経由で Anthropic モデルを呼び出す
+const anthropic = new Anthropic({
+  apiKey: config.aiGatewayApiKey,
+  baseURL: "https://ai-gateway.vercel.sh",
+});
 
 /**
  * 質問文から全文検索用のキーワードを抽出する（軽量モデルを使用）。

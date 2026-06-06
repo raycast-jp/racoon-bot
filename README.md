@@ -14,7 +14,8 @@ Slack イベント ──→ Vercel Function ──→ Turso (libSQL / FTS5 trig
 
 - **蓄積**: `message.*` イベントを受信して Turso に保存（編集・削除にも追従）
 - **検索**: FTS5 の trigram tokenizer により日本語の部分一致検索が可能
-- **回答**: `claude-haiku-4-5` が質問から検索キーワードを抽出 → ヒットしたログ + 質問チャンネルの直近ログを `claude-opus-4-8` に渡して回答生成
+- **回答**: `claude-haiku-4.5` が質問から検索キーワードを抽出 → ヒットしたログ + 質問チャンネルの直近ログを `claude-opus-4.8` に渡して回答生成
+- **LLM**: Vercel AI Gateway (Anthropic Messages API 互換エンドポイント) 経由で呼び出し。トラフィック・コストは Vercel の AI Gateway ダッシュボードで可視化される
 - **永続化**: DB は Turso (libSQL)。ローカル開発では `file:` URL でただのローカル SQLite ファイルとして動く
 
 ## セットアップ
@@ -56,7 +57,7 @@ vercel env add TURSO_DATABASE_URL production
 vercel env add TURSO_AUTH_TOKEN production
 vercel env add SLACK_BOT_TOKEN production
 vercel env add SLACK_SIGNING_SECRET production
-vercel env add ANTHROPIC_API_KEY production
+# AI_GATEWAY_API_KEY は省略可（Vercel 上では OIDC トークンが自動で使われる）
 
 # デプロイ
 vercel deploy --prod
@@ -96,10 +97,10 @@ TURSO_DATABASE_URL=libsql://xxx.turso.io TURSO_AUTH_TOKEN=... npm run backfill
 |---|---|---|
 | `SLACK_BOT_TOKEN` | ✅ | Bot User OAuth Token |
 | `SLACK_SIGNING_SECRET` | ✅ | Slack App の Signing Secret |
-| `ANTHROPIC_API_KEY` | ✅ | Anthropic API キー |
+| `AI_GATEWAY_API_KEY` | ✅* | Vercel AI Gateway の API キー（* Vercel 上では `VERCEL_OIDC_TOKEN` が自動で使われるため省略可） |
 | `TURSO_DATABASE_URL` | — | Turso の接続 URL（例 `libsql://xxx.turso.io`）。未設定なら `file:./data/local.db` |
 | `TURSO_AUTH_TOKEN` | — | Turso の認証トークン（ローカル `file:` 利用時は不要） |
-| `ANSWER_MODEL` | — | 回答モデル（デフォルト `claude-opus-4-8`） |
-| `KEYWORD_MODEL` | — | キーワード抽出モデル（デフォルト `claude-haiku-4-5`） |
+| `ANSWER_MODEL` | — | 回答モデル（デフォルト `anthropic/claude-opus-4.8`） |
+| `KEYWORD_MODEL` | — | キーワード抽出モデル（デフォルト `anthropic/claude-haiku-4.5`） |
 | `SEARCH_LIMIT` | — | LLM に渡す検索ヒット上限（デフォルト 60） |
 | `RECENT_LIMIT` | — | 直近ログの件数（デフォルト 40） |

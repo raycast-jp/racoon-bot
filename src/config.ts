@@ -1,16 +1,17 @@
 export const config = {
   slackBotToken: requireEnv("SLACK_BOT_TOKEN"),
   slackSigningSecret: requireEnv("SLACK_SIGNING_SECRET"),
-  anthropicApiKey: requireEnv("ANTHROPIC_API_KEY"),
+  /** Vercel AI Gateway の認証。Vercel 上では OIDC トークンが自動で利用できる */
+  aiGatewayApiKey: requireAnyEnv("AI_GATEWAY_API_KEY", "VERCEL_OIDC_TOKEN"),
   /** Turso の接続 URL。未設定ならローカルの SQLite ファイルで動く */
   tursoDatabaseUrl: process.env.TURSO_DATABASE_URL ?? "file:./data/local.db",
   /** Turso の認証トークン（ローカルの file: 利用時は不要） */
   tursoAuthToken: process.env.TURSO_AUTH_TOKEN,
   port: Number(process.env.PORT ?? 3000),
-  /** 回答生成に使うモデル */
-  answerModel: process.env.ANSWER_MODEL ?? "claude-opus-4-8",
+  /** 回答生成に使うモデル（Vercel AI Gateway のモデル ID） */
+  answerModel: process.env.ANSWER_MODEL ?? "anthropic/claude-opus-4.8",
   /** 検索キーワード抽出に使う軽量モデル */
-  keywordModel: process.env.KEYWORD_MODEL ?? "claude-haiku-4-5",
+  keywordModel: process.env.KEYWORD_MODEL ?? "anthropic/claude-haiku-4.5",
   /** FTS 検索で LLM に渡す最大ヒット件数 */
   searchLimit: Number(process.env.SEARCH_LIMIT ?? 60),
   /** 質問されたチャンネルの直近ログを何件渡すか */
@@ -23,4 +24,12 @@ function requireEnv(name: string): string {
     throw new Error(`環境変数 ${name} が設定されていません`);
   }
   return value;
+}
+
+function requireAnyEnv(...names: string[]): string {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value) return value;
+  }
+  throw new Error(`環境変数 ${names.join(" または ")} が設定されていません`);
 }
