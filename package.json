@@ -4,6 +4,9 @@
   "private": true,
   "description": "Slack の会話ログを蓄積し、@メンションで質問すると Claude が過去ログを根拠に回答する bot",
   "main": "dist/src/app.js",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/app.ts",
@@ -19,7 +22,7 @@
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^24.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^4.1.8"
