@@ -8,15 +8,13 @@ import { describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   postMessage: vi.fn(async () => ({ ok: true })),
-  createMessage: vi.fn(async (params: { model: string }) => {
-    // キーワード抽出 (haiku) と回答生成 (opus) で返答を出し分ける
-    if (params.model.includes("haiku")) {
-      return {
-        content: [{ type: "text", text: JSON.stringify({ keywords: ["障害対応"] }) }],
-      };
-    }
+  // generateText のみモックし、searchLogs ツールは実際に実行して検索パスも通す
+  generateText: vi.fn(async (opts: any) => {
+    const hits: string = await opts.tools.searchLogs.execute({ keywords: ["障害対応"] });
     return {
-      content: [{ type: "text", text: "昨日の障害は DB のフェイルオーバーで復旧済みです" }],
+      text: hits.includes("障害対応")
+        ? "昨日の障害は DB のフェイルオーバーで復旧済みです"
+        : "ログには見つかりませんでした",
     };
   }),
 }));
@@ -29,11 +27,10 @@ vi.mock("@slack/web-api", () => ({
   },
 }));
 
-vi.mock("@anthropic-ai/sdk", () => ({
-  default: class {
-    messages = { create: mocks.createMessage };
-  },
-}));
+vi.mock("ai", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("ai")>();
+  return { ...actual, generateText: mocks.generateText };
+});
 
 // テスト環境には Vercel のリクエストコンテキストが無いため no-op に差し替える
 // （handleEvent の Promise は waitUntil に渡す前に生成されるので処理自体は走る）

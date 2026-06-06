@@ -10,8 +10,6 @@ export const config = {
   port: Number(process.env.PORT ?? 3000),
   /** 回答生成に使うモデル（Vercel AI Gateway のモデル ID） */
   answerModel: process.env.ANSWER_MODEL ?? "anthropic/claude-opus-4.8",
-  /** 検索キーワード抽出に使う軽量モデル */
-  keywordModel: process.env.KEYWORD_MODEL ?? "anthropic/claude-haiku-4.5",
   /** FTS 検索で LLM に渡す最大ヒット件数 */
   searchLimit: Number(process.env.SEARCH_LIMIT ?? 60),
   /** 質問されたチャンネルの直近ログを何件渡すか */

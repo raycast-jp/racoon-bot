@@ -15,11 +15,13 @@
     "backfill": "tsx src/backfill.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.102.0",
+    "@ai-sdk/gateway": "^3.0.125",
     "@libsql/client": "^0.15.0",
     "@slack/web-api": "^7.9.0",
     "@vercel/functions": "^2.0.0",
-    "drizzle-orm": "^0.45.2"
+    "ai": "^6.0.197",
+    "drizzle-orm": "^0.45.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

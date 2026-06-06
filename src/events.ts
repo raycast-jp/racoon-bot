@@ -13,7 +13,7 @@ import {
   getCachedUserName,
   type StoredMessage,
 } from "./db";
-import { extractKeywords, answerQuestion } from "./llm";
+import { answerQuestion } from "./llm";
 
 const client = new WebClient(config.slackBotToken);
 
@@ -67,18 +67,15 @@ async function handleAppMention(e: Record<string, any>): Promise<void> {
   }
 
   try {
-    // 1. 質問から検索キーワードを抽出
-    const keywords = await extractKeywords(question);
-
-    // 2. 全文検索 + 質問チャンネルの直近ログを収集
-    const hits = keywords.length > 0 ? await searchMessages(keywords, config.searchLimit) : [];
+    // 質問チャンネルの直近ログを文脈として渡し、
+    // 全文検索はツールとしてモデルが必要に応じて呼び出す
     const recent = await recentMessages(e.channel, config.recentLimit);
-
-    const searchContext = await formatMessages(hits);
     const recentContext = await formatMessages(recent);
 
-    // 3. Claude に回答させる
-    const answer = await answerQuestion(question, searchContext, recentContext);
+    const answer = await answerQuestion(question, recentContext, async (keywords) => {
+      const hits = await searchMessages(keywords, config.searchLimit);
+      return (await formatMessages(hits)) || "(ヒットなし)";
+    });
 
     await reply(answer || "回答を生成できませんでした。");
   } catch (error) {
