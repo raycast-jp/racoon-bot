@@ -1,0 +1,23 @@
+export const config = {
+  slackBotToken: requireEnv("SLACK_BOT_TOKEN"),
+  slackSigningSecret: requireEnv("SLACK_SIGNING_SECRET"),
+  anthropicApiKey: requireEnv("ANTHROPIC_API_KEY"),
+  dbPath: process.env.DB_PATH ?? "./data/slack-log.db",
+  port: Number(process.env.PORT ?? 3000),
+  /** 回答生成に使うモデル */
+  answerModel: process.env.ANSWER_MODEL ?? "claude-opus-4-8",
+  /** 検索キーワード抽出に使う軽量モデル */
+  keywordModel: process.env.KEYWORD_MODEL ?? "claude-haiku-4-5",
+  /** FTS 検索で LLM に渡す最大ヒット件数 */
+  searchLimit: Number(process.env.SEARCH_LIMIT ?? 60),
+  /** 質問されたチャンネルの直近ログを何件渡すか */
+  recentLimit: Number(process.env.RECENT_LIMIT ?? 40),
+};
+
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`環境変数 ${name} が設定されていません`);
+  }
+  return value;
+}

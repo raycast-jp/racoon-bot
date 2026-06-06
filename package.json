@@ -1,0 +1,24 @@
+{
+  "name": "racoon-bot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Slack の会話ログを蓄積し、@メンションで質問すると Claude が過去ログを根拠に回答する bot",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/app.ts",
+    "start": "node dist/app.js",
+    "backfill": "tsx src/backfill.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.102.0",
+    "@slack/bolt": "^4.2.0",
+    "better-sqlite3": "^11.8.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

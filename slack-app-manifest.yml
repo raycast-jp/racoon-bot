@@ -1,0 +1,35 @@
+# Slack App 作成用マニフェスト
+# https://api.slack.com/apps → Create New App → From an app manifest に貼り付け
+# request_url は Cloud Run デプロイ後の URL に置き換えること
+display_information:
+  name: racoon-bot
+  description: 会話ログをすべて記憶し、質問に答える bot
+  background_color: "#4a4a4a"
+features:
+  bot_user:
+    display_name: racoon-bot
+    always_online: true
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - channels:history
+      - channels:read
+      - groups:history
+      - groups:read
+      - im:history
+      - mpim:history
+      - users:read
+      - chat:write
+settings:
+  event_subscriptions:
+    request_url: https://YOUR-CLOUD-RUN-URL.run.app/slack/events
+    bot_events:
+      - app_mention
+      - message.channels
+      - message.groups
+      - message.im
+      - message.mpim
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
