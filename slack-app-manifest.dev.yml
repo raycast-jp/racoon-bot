@@ -1,0 +1,35 @@
+# ローカル開発用 Slack App のマニフェスト（本番と同一ワークスペースに共存させる）
+# https://api.slack.com/apps → Create New App → From an app manifest に貼り付け
+# request_url は ngrok 起動後の URL に置き換えること（URL が変わるたびに更新が必要）
+display_information:
+  name: racoon-bot-dev
+  description: racoon-bot の開発用。本番とは別の App として動く
+  background_color: "#8a6d3b"
+features:
+  bot_user:
+    display_name: racoon-bot-dev
+    always_online: false
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - channels:history
+      - channels:read
+      - groups:history
+      - groups:read
+      - im:history
+      - mpim:history
+      - users:read
+      - chat:write
+settings:
+  event_subscriptions:
+    request_url: https://YOUR-NGROK-URL.ngrok.io/slack/events
+    bot_events:
+      - app_mention
+      - message.channels
+      - message.groups
+      - message.im
+      - message.mpim
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

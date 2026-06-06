@@ -2,6 +2,25 @@
 
 ## 初回セットアップ
 
+### 1. 開発用 Slack App (racoon-bot-dev) を作る
+
+本番 App とは**別の App** をローカル開発用に作る（Slack App に環境の概念はないため）。
+本番と同一ワークスペースに共存させる。
+
+1. https://api.slack.com/apps → **Create New App** → **From an app manifest**
+2. `slack-app-manifest.dev.yml` の内容を貼り付ける（bot 名は `racoon-bot-dev`）
+3. **Install to Workspace** でインストール
+4. **Bot User OAuth Token** と **Signing Secret** を控える（→ `.env` へ）
+
+> **注意（同一ワークスペース運用）**
+> - 本番 App の Request URL は絶対に触らない。ngrok に向けるのは dev App だけ
+> - dev bot を invite したチャンネルの発言はローカルの `data/local.db` に記録される。
+>   **動作確認用のテストチャンネル（例: #racoon-bot-dev）にだけ invite** し、
+>   業務チャンネルには入れないこと
+> - メンションは `@racoon-bot-dev` 宛てに行う（本番 bot と取り違えない）
+
+### 2. 依存と環境変数
+
 ```sh
 pnpm install
 cp .env.example .env
@@ -11,8 +30,8 @@ cp .env.example .env
 
 | 変数 | 取得元 |
 |---|---|
-| `SLACK_BOT_TOKEN` | Slack App → OAuth & Permissions（開発用 App 推奨、下記参照） |
-| `SLACK_SIGNING_SECRET` | Slack App → Basic Information |
+| `SLACK_BOT_TOKEN` | **racoon-bot-dev** → OAuth & Permissions |
+| `SLACK_SIGNING_SECRET` | **racoon-bot-dev** → Basic Information |
 | `AI_GATEWAY_API_KEY` | Vercel ダッシュボード → AI Gateway → API Keys |
 
 **DB の準備は不要。** `TURSO_DATABASE_URL` 未設定なら `file:./data/local.db` の
@@ -28,11 +47,11 @@ pnpm dev
 ngrok http 3000
 ```
 
-ngrok の URL を Slack App の **Event Subscriptions → Request URL** に設定:
+ngrok の URL を **racoon-bot-dev** の **Event Subscriptions → Request URL** に設定:
 `https://xxx.ngrok.io/slack/events`
 
-> 本番 App の Request URL を書き換えないこと。開発用に別の Slack App
-> （例: racoon-bot-dev）を manifest から複製して使う。
+テストチャンネルで `/invite @racoon-bot-dev` → 発言 → `@racoon-bot-dev 今なんて言った？`
+で回答が返れば疎通完了。
 
 ## Slack を介さない部分テスト
 
