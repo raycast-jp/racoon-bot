@@ -87,6 +87,7 @@ pnpm vercel env add TURSO_DATABASE_URL production
 pnpm vercel env add TURSO_AUTH_TOKEN production
 pnpm vercel env add SLACK_BOT_TOKEN production
 pnpm vercel env add SLACK_SIGNING_SECRET production
+pnpm vercel env add AI_GATEWAY_API_KEY production
 # AI_GATEWAY_API_KEY は不要（Vercel 上では OIDC トークンが自動で使われる）
 ```
 
