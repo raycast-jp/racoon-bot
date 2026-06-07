@@ -58,7 +58,7 @@ curl -sSfL https://get.tur.so/install.sh | bash
 turso auth login
 
 # Turso の DB を作成（初回のみ）
-turso db create racoon-bot --location nrt
+turso db create racoon-bot --location aws-ap-northeast-1  # 東京（一覧: turso db locations）
 turso db show racoon-bot --url        # → TURSO_DATABASE_URL
 turso db tokens create racoon-bot     # → TURSO_AUTH_TOKEN
 

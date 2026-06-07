@@ -15,7 +15,7 @@ racoon-bot をゼロから本番稼働させるまでの手順。所要時間の
 - Turso アカウント + `turso` CLI
   - インストール: `curl -sSfL https://get.tur.so/install.sh | bash`
   - ログイン: `turso auth login`
-- `vercel` CLI（`pnpm add -g vercel`）
+- `vercel` CLI（リポジトリの dependencies に含まれるため `pnpm install` 済みなら `pnpm vercel ...` で実行できる）
 
 ## 1. Slack App の作成（本番用）
 
@@ -30,7 +30,8 @@ racoon-bot をゼロから本番稼働させるまでの手順。所要時間の
 ## 2. Turso の DB 作成
 
 ```sh
-turso db create racoon-bot --location nrt
+# ロケーション一覧は `turso db locations` で確認できる
+turso db create racoon-bot --location aws-ap-northeast-1  # 東京
 turso db show racoon-bot --url        # → TURSO_DATABASE_URL
 turso db tokens create racoon-bot     # → TURSO_AUTH_TOKEN
 ```
@@ -41,17 +42,60 @@ turso db tokens create racoon-bot     # → TURSO_AUTH_TOKEN
 
 ## 3. Vercel プロジェクトの作成と環境変数
 
-```sh
-vercel link    # 新規プロジェクトとしてリンク
+### 3-1. ログイン（初回のみ）
 
-vercel env add TURSO_DATABASE_URL production
-vercel env add TURSO_AUTH_TOKEN production
-vercel env add SLACK_BOT_TOKEN production
-vercel env add SLACK_SIGNING_SECRET production
+```sh
+pnpm vercel login
+```
+
+メールアドレスまたは GitHub 等を選ぶとブラウザが開くので、そこで認証する。
+
+### 3-2. 新規プロジェクトとしてリンク
+
+`vercel link` はダッシュボードで事前にプロジェクトを作らなくてよい。
+対話プロンプトで「既存にリンクしない」を選ぶと、その場で新規プロジェクトが作成される:
+
+```sh
+pnpm vercel link
+```
+
+| プロンプト | 入力 |
+|---|---|
+| `Set up "~/.../racoon-bot"?` | `yes` |
+| `Which scope should contain your project?` | デプロイ先のチーム（または個人アカウント）を選択 |
+| `Link to existing project?` | **`no`** ← ここが新規作成の分かれ目 |
+| `What's your project's name?` | `racoon-bot`（本番用の名前。dev 用と区別する） |
+| `In which directory is your code located?` | `./` |
+| `Want to modify these settings?`（Framework: Other と自動検出される） | `no` |
+| `Do you want to change additional project settings?` | `no` |
+| `Detected a repository. Connect it to this project?` | `no` |
+
+成功すると `.vercel/project.json`（projectId / orgId）が作られ、以降の
+`vercel env` / `vercel deploy` はこのプロジェクトに向く。
+`.vercel/` は gitignore 済みなのでコミットされない。
+
+> やり直したい場合（別のスコープ・名前にしたい等）は `.vercel/` を削除して
+> `pnpm vercel link` を再実行すればよい。
+
+### 3-3. 環境変数の登録
+
+各コマンドを実行すると値の入力を求められるので、控えておいた値を貼り付ける:
+
+```sh
+pnpm vercel env add TURSO_DATABASE_URL production
+pnpm vercel env add TURSO_AUTH_TOKEN production
+pnpm vercel env add SLACK_BOT_TOKEN production
+pnpm vercel env add SLACK_SIGNING_SECRET production
 # AI_GATEWAY_API_KEY は不要（Vercel 上では OIDC トークンが自動で使われる）
 ```
 
-AI Gateway はプロジェクトの **AI** タブから有効化しておく（クレジット/支払い設定を確認）。
+登録済みの変数は `pnpm vercel env ls` で確認できる。
+
+### 3-4. AI Gateway の有効化
+
+ダッシュボードのプロジェクト → **AI** タブから AI Gateway を有効化しておく。
+**free tier では Opus / Sonnet が使えない**ため、本番でデフォルトの
+`anthropic/claude-opus-4.8` を使うにはクレジットのトップアップ（支払い設定）が必要。
 
 ## 4. デプロイと Slack の接続
 
