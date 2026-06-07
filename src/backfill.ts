@@ -7,11 +7,45 @@
  */
 import { WebClient } from "@slack/web-api";
 import { config } from "./config";
-import { saveMessage, cacheChannelName, messageCount } from "./db";
+import { saveMessage, cacheChannelName, cacheUserName, messageCount } from "./db";
 
 const client = new WebClient(config.slackBotToken);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// racoon-bot 自身の bot_id（自分の回答は取り込まない）
+let selfBotId: string | undefined;
+
+type SlackMessage = {
+  ts?: string;
+  thread_ts?: string;
+  user?: string;
+  bot_id?: string;
+  username?: string;
+  subtype?: string;
+  text?: string;
+};
+
+/**
+ * 取り込み対象なら保存して true を返す。
+ * 対象: 通常メッセージと bot_message（racoon-bot 自身を除く）
+ */
+async function saveIfTarget(channelId: string, m: SlackMessage): Promise<boolean> {
+  if (!m.ts) return false;
+  if (m.subtype !== undefined && m.subtype !== "bot_message") return false;
+  if (m.bot_id && m.bot_id === selfBotId) return false;
+  if (m.subtype === "bot_message" && m.bot_id && m.username) {
+    await cacheUserName(m.bot_id, m.username);
+  }
+  await saveMessage({
+    channelId,
+    ts: m.ts,
+    threadTs: m.thread_ts,
+    userId: m.user ?? m.bot_id,
+    text: m.text ?? "",
+  });
+  return true;
+}
 
 async function backfillChannel(channelId: string, channelName: string): Promise<number> {
   let saved = 0;
@@ -25,15 +59,8 @@ async function backfillChannel(channelId: string, channelName: string): Promise<
     });
 
     for (const m of res.messages ?? []) {
-      if (!m.ts || m.bot_id || m.subtype) continue;
-      await saveMessage({
-        channelId,
-        ts: m.ts,
-        threadTs: m.thread_ts,
-        userId: m.user,
-        text: m.text ?? "",
-      });
-      saved++;
+      if (!m.ts) continue;
+      if (await saveIfTarget(channelId, m)) saved++;
 
       // スレッドの返信も取り込む
       if (m.reply_count && m.reply_count > 0 && m.thread_ts) {
@@ -46,15 +73,8 @@ async function backfillChannel(channelId: string, channelName: string): Promise<
             cursor: replyCursor,
           });
           for (const r of replies.messages ?? []) {
-            if (!r.ts || r.ts === m.ts || r.bot_id || (r as { subtype?: string }).subtype) continue;
-            await saveMessage({
-              channelId,
-              ts: r.ts,
-              threadTs: r.thread_ts,
-              userId: r.user,
-              text: r.text ?? "",
-            });
-            saved++;
+            if (!r.ts || r.ts === m.ts) continue;
+            if (await saveIfTarget(channelId, r)) saved++;
           }
           replyCursor = replies.response_metadata?.next_cursor || undefined;
           await sleep(1200); // rate limit (Tier 3) 対策
@@ -72,6 +92,7 @@ async function backfillChannel(channelId: string, channelName: string): Promise<
 
 (async () => {
   console.log("バックフィルを開始します...");
+  selfBotId = ((await client.auth.test()) as { bot_id?: string }).bot_id;
   let cursor: string | undefined;
 
   do {

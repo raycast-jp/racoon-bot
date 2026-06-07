@@ -17,6 +17,13 @@ import { answerQuestion } from "./llm";
 
 const client = new WebClient(config.slackBotToken);
 
+// 自分自身 (racoon-bot) の bot_id。初回参照時に auth.test で解決してキャッシュする
+let selfBotIdPromise: Promise<string | undefined> | null = null;
+function selfBotId(): Promise<string | undefined> {
+  selfBotIdPromise ??= client.auth.test().then((res) => (res as { bot_id?: string }).bot_id);
+  return selfBotIdPromise;
+}
+
 /**
  * Events API の event_callback ペイロード内の event を処理する。
  * Vercel Function とローカル開発サーバーの両方から呼ばれる。
@@ -29,13 +36,19 @@ export async function handleEvent(event: Record<string, any>): Promise<void> {
 // --- ログの蓄積 ---
 
 async function handleMessage(e: Record<string, any>): Promise<void> {
-  if (e.subtype === undefined) {
-    if (e.bot_id) return; // bot の発言は記録しない
+  if (e.subtype === undefined || e.subtype === "bot_message") {
+    // racoon-bot 自身の回答だけは記録しない（検索ノイズ・自己参照の防止）。
+    // 他のアプリ (bot) の投稿は人間の発言と同様に記録する
+    if (e.bot_id && e.bot_id === (await selfBotId())) return;
+    // bot_message は user を持たないことがあるため bot_id を発言者として保存し、表示名をキャッシュ
+    if (e.subtype === "bot_message" && e.bot_id && e.username) {
+      await cacheUserName(e.bot_id, e.username);
+    }
     await saveMessage({
       channelId: e.channel,
       ts: e.ts,
       threadTs: e.thread_ts,
-      userId: e.user,
+      userId: e.user ?? e.bot_id,
       text: e.text ?? "",
     });
   } else if (e.subtype === "message_changed" && e.message?.ts) {
@@ -121,6 +134,13 @@ async function resolveUserName(userId: string): Promise<string> {
   const cached = await getCachedUserName(userId);
   if (cached) return cached;
   try {
+    // bot_message の発言者は bot_id (B...) のため users.info ではなく bots.info で引く
+    if (userId.startsWith("B")) {
+      const res = await client.bots.info({ bot: userId });
+      const name = res.bot?.name ?? userId;
+      await cacheUserName(userId, name);
+      return name;
+    }
     const res = await client.users.info({ user: userId });
     const name =
       res.user?.profile?.display_name || res.user?.real_name || res.user?.name || userId;
