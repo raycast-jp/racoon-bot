@@ -27,6 +27,8 @@
 
 ### DB 関連（保存も回答もできない）
 
+- 本番 DB の中身を安全に確認する: `pnpm studio:prod`
+  （read-only / 1 日で失効するトークンをその場で発行して Drizzle Studio を開く。誤更新の心配なし）
 - ログに `LibsqlError` 系が出る
   - **認証エラー**: `TURSO_AUTH_TOKEN` の期限切れ → `turso db tokens create racoon-bot` で再発行 → env 更新 → 再デプロイ
   - **Turso の利用上限**: ダッシュボードで quota を確認（無料枠の row read 上限など）

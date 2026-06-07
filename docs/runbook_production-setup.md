@@ -36,8 +36,9 @@ turso db show racoon-bot --url        # → TURSO_DATABASE_URL
 turso db tokens create racoon-bot     # → TURSO_AUTH_TOKEN
 ```
 
-> スキーマは `drizzle/` のマイグレーションがアプリ初回起動時に自動適用される
-> （`src/db.ts` の `ensureSchema` → drizzle-orm の `migrate`）。手動のマイグレーション手順は不要。
+> スキーマは `drizzle/` のマイグレーションが **デプロイのビルド時**（`vercel.json` の
+> `buildCommand` にある `drizzle-kit migrate`）に適用される。さらに保険としてアプリ実行時にも未適用分があれば
+> 自動適用される（`src/db.ts` の `ensureSchema`）。手動のマイグレーション手順は不要。
 > スキーマ変更時は `src/schema.ts` を編集して `pnpm exec drizzle-kit generate` でマイグレーションを生成する。
 
 ## 3. Vercel プロジェクトの作成と環境変数
