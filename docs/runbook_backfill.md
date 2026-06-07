@@ -16,12 +16,30 @@ bot 導入前の過去ログを DB に取り込む手順。`src/backfill.ts` は
 ### 本番 (Turso) に取り込む
 
 ```sh
+pnpm backfill:prod
+```
+
+接続情報を手で貼る必要はない。このスクリプトは
+
+1. `vercel env pull` で本番の環境変数（`SLACK_BOT_TOKEN` / `TURSO_*`）を `.env.production` に取得し
+2. それを使って backfill を実行し
+3. 終了後に `.env.production` を削除する
+
+（`.env.production` は gitignore 済み。Vercel にログイン・プロジェクトリンク済みであることが前提）
+
+ローカルマシンから直接本番 DB に書き込まれる。レプリカ同期等の後処理は不要。
+
+<details>
+<summary>手動で接続情報を指定する場合</summary>
+
+```sh
 TURSO_DATABASE_URL=libsql://xxx.turso.io \
 TURSO_AUTH_TOKEN=... \
+SLACK_BOT_TOKEN=xoxb-... \
 pnpm backfill
 ```
 
-ローカルマシンから直接本番 DB に書き込まれる。レプリカ同期等の後処理は不要。
+</details>
 
 ### ローカル DB で試す（推奨: 本番前に一度）
 

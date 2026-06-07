@@ -13,7 +13,8 @@
     "start": "node dist/src/app.js",
     "test": "vitest run",
     "studio": "drizzle-kit studio",
-    "backfill": "tsx --env-file=.env src/backfill.ts"
+    "backfill": "tsx --env-file=.env src/backfill.ts",
+    "backfill:prod": "vercel env pull .env.production --environment=production --yes && tsx --env-file=.env.production src/backfill.ts; rm -f .env.production"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.125",

@@ -90,8 +90,8 @@ vercel deploy --prod
 bot をチャンネルに招待（`/invite @racoon-bot`）した後、過去ログを一括で取り込める:
 
 ```sh
-# 本番の Turso に直接書き込む場合は接続情報を指定して実行
-TURSO_DATABASE_URL=libsql://xxx.turso.io TURSO_AUTH_TOKEN=... pnpm backfill
+# 本番の Turso に取り込む（Vercel から本番 env を pull して実行 → 終了後に削除）
+pnpm backfill:prod
 ```
 
 > DB がクラウド側 (Turso) にあるため、ローカルから実行してもそのまま本番 DB に

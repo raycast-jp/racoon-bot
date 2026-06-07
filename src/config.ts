@@ -1,8 +1,13 @@
 export const config = {
   slackBotToken: requireEnv("SLACK_BOT_TOKEN"),
   slackSigningSecret: requireEnv("SLACK_SIGNING_SECRET"),
-  /** Vercel AI Gateway の認証。Vercel 上では OIDC トークンが自動で利用できる */
-  aiGatewayApiKey: requireAnyEnv("AI_GATEWAY_API_KEY", "VERCEL_OIDC_TOKEN"),
+  /**
+   * Vercel AI Gateway の認証。Vercel 上では OIDC トークンが自動で利用できる。
+   * LLM を使わない backfill などでも config を import できるよう、参照時に検証する
+   */
+  get aiGatewayApiKey(): string {
+    return requireAnyEnv("AI_GATEWAY_API_KEY", "VERCEL_OIDC_TOKEN");
+  },
   /** Turso の接続 URL。未設定ならローカルの SQLite ファイルで動く */
   tursoDatabaseUrl: process.env.TURSO_DATABASE_URL ?? "file:./data/local.db",
   /** Turso の認証トークン（ローカルの file: 利用時は不要） */
