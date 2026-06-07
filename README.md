@@ -53,6 +53,11 @@ ngrok http 3000 --url=YOUR-SUBDOMAIN.ngrok-free.dev
 ### 3. Vercel にデプロイ
 
 ```sh
+# Turso CLI のインストールとログイン（未導入の場合）
+brew tap tursodatabase/tap
+brew install tursodatabase/tap/turso   # macOS 以外: curl -sSfL https://get.tur.so/install.sh | bash
+turso auth login
+
 # Turso の DB を作成（初回のみ）
 turso db create racoon-bot --location nrt
 turso db show racoon-bot --url        # → TURSO_DATABASE_URL

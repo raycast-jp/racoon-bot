@@ -13,6 +13,9 @@ racoon-bot をゼロから本番稼働させるまでの手順。所要時間の
 - Slack ワークスペースの App 作成権限
 - Vercel アカウント（AI Gateway 利用可能なもの）
 - Turso アカウント + `turso` CLI
+  - インストール: `brew install tursodatabase/tap/turso`
+    （macOS 以外は `curl -sSfL https://get.tur.so/install.sh | bash`）
+  - ログイン: `turso auth login`
 - `vercel` CLI（`pnpm add -g vercel`）
 
 ## 1. Slack App の作成（本番用）
