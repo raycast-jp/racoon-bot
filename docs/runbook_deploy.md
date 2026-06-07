@@ -66,6 +66,11 @@ vercel deploy --prod
 
 ## 注意事項
 
+- `No Output Directory named "public" found` でビルドが落ちる場合:
+  Framework「Other」+ `buildCommand` 指定の構成では、ビルド後に静的出力先
+  `public/` の存在が要求される。この repo では空の `public/.gitkeep` を
+  置いて満たしている（API のみで静的ファイルは無いため）。消さないこと
+
 - `vercel.json` の `maxDuration: 300` は回答生成（LLM 数十秒）のための設定。削らないこと
 - Slack の 3 秒 ACK は `api/slack/events.ts` の「即 200 → `waitUntil`」で担保している。
   このファイルの応答順序を変えるとイベント再送 → 重複回答が発生する
