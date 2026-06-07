@@ -15,7 +15,7 @@
     "studio": "drizzle-kit studio",
     "studio:prod": "TURSO_DATABASE_URL=$(turso db show racoon-bot --url) TURSO_AUTH_TOKEN=$(turso db tokens create racoon-bot --read-only --expiration 1d) drizzle-kit studio",
     "backfill": "tsx --env-file=.env src/backfill.ts",
-    "backfill:prod": "vercel env pull .env.production --environment=production --yes && tsx --env-file=.env.production src/backfill.ts; rm -f .env.production"
+    "backfill:prod": "tsx --env-file=.env.production src/backfill.ts"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.125",

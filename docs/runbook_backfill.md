@@ -16,16 +16,20 @@ bot 導入前の過去ログを DB に取り込む手順。`src/backfill.ts` は
 ### 本番 (Turso) に取り込む
 
 ```sh
-pnpm backfill:prod
+pnpm backfill:prod   # .env.production を読んで実行
 ```
 
-接続情報を手で貼る必要はない。このスクリプトは
+`.env.production` は **1Password Environments**（本番用の環境）で管理する:
 
-1. `vercel env pull` で本番の環境変数（`SLACK_BOT_TOKEN` / `TURSO_*`）を `.env.production` に取得し
-2. それを使って backfill を実行し
-3. 終了後に `.env.production` を削除する
+1. 1Password に環境（例: `Racoonbot | Prod`）を作り、以下の 4 変数を登録:
+   `SLACK_BOT_TOKEN`（本番 App の xoxb-）/ `SLACK_SIGNING_SECRET` /
+   `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN`
+2. その環境をこのリポジトリの `.env.production` にリンクする
+   （dev 用の `.env` と同じ仕組み。ファイルは gitignore 済み）
 
-（`.env.production` は gitignore 済み。Vercel にログイン・プロジェクトリンク済みであることが前提）
+> ⚠️ `vercel env pull` で本番の値を取得する方式は使えない
+> （この環境では pull した値がすべて空になる = 書き出し不可）。
+> 本番の接続情報の正本は 1Password 側で持つこと。
 
 ローカルマシンから直接本番 DB に書き込まれる。レプリカ同期等の後処理は不要。
 
