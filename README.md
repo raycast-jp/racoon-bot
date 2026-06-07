@@ -54,8 +54,7 @@ ngrok http 3000 --url=YOUR-SUBDOMAIN.ngrok-free.dev
 
 ```sh
 # Turso CLI のインストールとログイン（未導入の場合）
-brew tap tursodatabase/tap
-brew install tursodatabase/tap/turso   # macOS 以外: curl -sSfL https://get.tur.so/install.sh | bash
+curl -sSfL https://get.tur.so/install.sh | bash
 turso auth login
 
 # Turso の DB を作成（初回のみ）
