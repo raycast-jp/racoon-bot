@@ -14,7 +14,7 @@ Slack イベント ──→ Vercel Function ──→ Turso (libSQL / FTS5 trig
 
 - **蓄積**: `message.*` イベントを受信して Turso に保存（編集・削除にも追従）
 - **検索**: FTS5 の trigram tokenizer により日本語の部分一致検索が可能
-- **回答**: AI SDK の tool calling で `claude-opus-4.8` が `searchLogs` ツールを自律的に呼び出し（キーワードを変えた再検索も可）、ヒットしたログ + 質問チャンネルの直近ログを根拠に回答生成
+- **回答**: AI SDK の tool calling で `gemini-3-flash` が `searchLogs` ツールを自律的に呼び出し（キーワードを変えた再検索も可）、ヒットしたログ + 質問チャンネルの直近ログを根拠に回答生成
 - **LLM**: AI SDK + Vercel AI Gateway 経由で呼び出し。トラフィック・コストは Vercel の AI Gateway ダッシュボードで可視化される
 - **永続化**: DB は Turso (libSQL)。ローカル開発では `file:` URL でただのローカル SQLite ファイルとして動く
 
@@ -111,6 +111,6 @@ pnpm backfill:prod
 | `AI_GATEWAY_API_KEY` | ✅* | Vercel AI Gateway の API キー（* Vercel 上では `VERCEL_OIDC_TOKEN` が自動で使われるため省略可） |
 | `TURSO_DATABASE_URL` | — | Turso の接続 URL（例 `libsql://xxx.turso.io`）。未設定なら `file:./data/local.db` |
 | `TURSO_AUTH_TOKEN` | — | Turso の認証トークン（ローカル `file:` 利用時は不要） |
-| `ANSWER_MODEL` | — | 回答モデル（デフォルト `anthropic/claude-opus-4.8`） |
+| `ANSWER_MODEL` | — | 回答モデル（デフォルト `google/gemini-3-flash`） |
 | `SEARCH_LIMIT` | — | LLM に渡す検索ヒット上限（デフォルト 60） |
 | `RECENT_LIMIT` | — | 直近ログの件数（デフォルト 40） |

@@ -14,7 +14,7 @@ export const config = {
   tursoAuthToken: process.env.TURSO_AUTH_TOKEN,
   port: Number(process.env.PORT ?? 3000),
   /** 回答生成に使うモデル（Vercel AI Gateway のモデル ID） */
-  answerModel: process.env.ANSWER_MODEL ?? "anthropic/claude-opus-4.8",
+  answerModel: process.env.ANSWER_MODEL ?? "google/gemini-3-flash",
   /** FTS 検索で LLM に渡す最大ヒット件数 */
   searchLimit: Number(process.env.SEARCH_LIMIT ?? 60),
   /** 質問されたチャンネルの直近ログを何件渡すか */

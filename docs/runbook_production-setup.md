@@ -95,8 +95,9 @@ pnpm vercel env add SLACK_SIGNING_SECRET production
 ### 3-4. AI Gateway の有効化
 
 ダッシュボードのプロジェクト → **AI** タブから AI Gateway を有効化しておく。
-**free tier では Opus / Sonnet が使えない**ため、本番でデフォルトの
-`anthropic/claude-opus-4.8` を使うにはクレジットのトップアップ（支払い設定）が必要。
+デフォルトの `google/gemini-3-flash` は free tier で動作する。
+Claude Opus / Sonnet などに切り替える場合（`ANSWER_MODEL` で変更可）は
+クレジットのトップアップ（支払い設定）が必要。
 
 ## 4. デプロイと Slack の接続
 
