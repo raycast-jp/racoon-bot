@@ -1,5 +1,8 @@
 # Runbook: デプロイ / ロールバック
 
+> staging で事前検証する場合は `staging` ブランチに push する
+> （初期セットアップは [runbook_staging-setup.md](runbook_staging-setup.md)）。
+
 ## 通常デプロイ
 
 ```sh
