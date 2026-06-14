@@ -1,0 +1,45 @@
+version: 2
+updates:
+  # npm (pnpm) の依存更新
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    # リリース直後の不安定なバージョンを避けるため、公開からしばらく待ってから PR を作る
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+    # minor/patch はまとめて1つの PR にする（メジャーは個別に）
+    groups:
+      npm-minor-patch:
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: chore
+      include: scope
+
+  # GitHub Actions の依存更新
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: chore
+      include: scope
