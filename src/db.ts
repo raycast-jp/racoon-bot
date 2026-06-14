@@ -1,11 +1,11 @@
+import fs from "node:fs";
+import path from "node:path";
 import { createClient } from "@libsql/client";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import fs from "node:fs";
-import path from "node:path";
 import { config } from "./config";
-import { channels, messages, users, type StoredMessage } from "./schema";
+import { channels, messages, type StoredMessage, users } from "./schema";
 
 export type { StoredMessage } from "./schema";
 
@@ -80,10 +80,7 @@ export async function deleteMessage(channelId: string, ts: string): Promise<void
  * trigram tokenizer は 3 文字未満のクエリにマッチしないため、
  * 短いキーワードは LIKE でフォールバックする。
  */
-export async function searchMessages(
-  keywords: string[],
-  limit: number
-): Promise<StoredMessage[]> {
+export async function searchMessages(keywords: string[], limit: number): Promise<StoredMessage[]> {
   await ensureSchema();
 
   const seen = new Set<string>();
@@ -105,9 +102,7 @@ export async function searchMessages(
   });
 
   if (ftsKeywords.length > 0) {
-    const query = ftsKeywords
-      .map((k) => `"${k.replaceAll('"', '""')}"`)
-      .join(" OR ");
+    const query = ftsKeywords.map((k) => `"${k.replaceAll('"', '""')}"`).join(" OR ");
     try {
       // FTS5 の MATCH / bm25 は Drizzle で表現できないため raw SQL
       const rows = (await db.all(sql`
@@ -140,10 +135,7 @@ export async function searchMessages(
   return results.slice(0, limit);
 }
 
-export async function recentMessages(
-  channelId: string,
-  limit: number
-): Promise<StoredMessage[]> {
+export async function recentMessages(channelId: string, limit: number): Promise<StoredMessage[]> {
   await ensureSchema();
   const rows = await db
     .select()

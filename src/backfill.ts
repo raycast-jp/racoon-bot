@@ -7,7 +7,7 @@
  */
 import { WebClient } from "@slack/web-api";
 import { config } from "./config";
-import { saveMessage, cacheChannelName, cacheUserName, messageCount } from "./db";
+import { cacheChannelName, cacheUserName, messageCount, saveMessage } from "./db";
 
 const client = new WebClient(config.slackBotToken);
 

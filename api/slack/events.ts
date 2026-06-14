@@ -4,8 +4,8 @@
  */
 import { waitUntil } from "@vercel/functions";
 import { config } from "../../src/config";
-import { verifySlackRequest } from "../../src/verify";
 import { handleEvent } from "../../src/events";
+import { verifySlackRequest } from "../../src/verify";
 
 export async function POST(request: Request): Promise<Response> {
   const body = await request.text();
@@ -34,9 +34,7 @@ export async function POST(request: Request): Promise<Response> {
 
   if (payload.type === "event_callback") {
     // Slack は 3 秒以内の ACK を要求するため、本処理はレスポンス後に waitUntil で実行する
-    waitUntil(
-      handleEvent(payload.event).catch((err) => console.error("イベント処理に失敗:", err))
-    );
+    waitUntil(handleEvent(payload.event).catch((err) => console.error("イベント処理に失敗:", err)));
   }
 
   return new Response("ok");

@@ -11,6 +11,9 @@
     "build": "tsc",
     "dev": "tsx watch --env-file=.env src/app.ts",
     "start": "node dist/src/app.js",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "studio": "drizzle-kit studio",
     "studio:prod": "TURSO_DATABASE_URL=$(turso db show racoon-bot --url) TURSO_AUTH_TOKEN=$(turso db tokens create racoon-bot --read-only --expiration 1d) drizzle-kit studio",
@@ -28,6 +31,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.0",
     "@types/node": "^24.0.0",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.19.0",
