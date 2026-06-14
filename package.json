@@ -24,7 +24,7 @@
     "@ai-sdk/gateway": "^3.0.125",
     "@libsql/client": "^0.15.0",
     "@slack/web-api": "^7.9.0",
-    "@vercel/functions": "^2.0.0",
+    "@vercel/functions": "^3.6.1",
     "ai": "^6.0.197",
     "drizzle-orm": "^0.45.2",
     "vercel": "^54.9.1",
