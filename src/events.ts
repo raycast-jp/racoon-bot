@@ -1,17 +1,17 @@
 import { WebClient } from "@slack/web-api";
 import { config } from "./config";
 import {
-  saveMessage,
-  updateMessageText,
-  deleteMessage,
-  searchMessages,
-  recentMessages,
-  messageCount,
   cacheChannelName,
-  getCachedChannelName,
   cacheUserName,
+  deleteMessage,
+  getCachedChannelName,
   getCachedUserName,
+  messageCount,
+  recentMessages,
   type StoredMessage,
+  saveMessage,
+  searchMessages,
+  updateMessageText,
 } from "./db";
 import { answerQuestion } from "./llm";
 
@@ -142,8 +142,7 @@ async function resolveUserName(userId: string): Promise<string> {
       return name;
     }
     const res = await client.users.info({ user: userId });
-    const name =
-      res.user?.profile?.display_name || res.user?.real_name || res.user?.name || userId;
+    const name = res.user?.profile?.display_name || res.user?.real_name || res.user?.name || userId;
     await cacheUserName(userId, name);
     return name;
   } catch {

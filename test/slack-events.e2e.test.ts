@@ -62,9 +62,7 @@ function signedRequest(payload: object): Request {
 
 describe("POST /api/slack/events (happy path)", () => {
   it("url_verification に challenge を返す", async () => {
-    const res = await POST(
-      signedRequest({ type: "url_verification", challenge: "ch-123" })
-    );
+    const res = await POST(signedRequest({ type: "url_verification", challenge: "ch-123" }));
 
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ challenge: "ch-123" });

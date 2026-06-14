@@ -7,9 +7,9 @@
  */
 import http from "node:http";
 import { config } from "./config";
-import { verifySlackRequest } from "./verify";
-import { handleEvent } from "./events";
 import { messageCount } from "./db";
+import { handleEvent } from "./events";
+import { verifySlackRequest } from "./verify";
 
 const server = http.createServer((req, res) => {
   if (req.method !== "POST" || !["/slack/events", "/api/slack/events"].includes(req.url ?? "")) {
